@@ -79,7 +79,7 @@ trait Service {
 
   private def listDirectory(path: Uri.Path): ToResponseMarshallable = HttpEntity(
     `text/html(UTF-8)`,
-    htmlBuilder.build(path.toString, bucket.ls(path)))
+    htmlBuilder.build(path.toString, bucket.ls(path).toList))
 }
 
 object S3Viewer extends App with Service {

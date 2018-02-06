@@ -1,0 +1,42 @@
+!!! 5
+html(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
+
+    title= "Test"
+    link(rel="stylesheet" href="/assets/bootstrap.css")
+  body
+    .container-fluid
+      nav(aria-label="breadcrumb")
+        ol.breadcrumb
+          li.breadcrumb-item.font-weight-bold
+            a(href="/") N4OS Storage
+          - for (breadcrumb <- breadcrumbs)
+            li.breadcrumb-item
+              a(href={breadcrumb.path})= {breadcrumb.name}
+
+      table.table
+        thead
+          tr
+            th(scope="col") Name
+            th(scope="col") Size
+            th(scope="col") Last Modified
+        tbody
+          - for (e <- entries)
+            tr
+              - e match
+                - case DisplayDirectory(name, path) =>
+                  td
+                    a(href=path)= name
+                  td
+                  td
+                - case DisplayFile(name, size, lastModified, path) =>
+                  td
+                    a(href=path)= name
+                  td= size
+                  td= lastModified
+
+    script(src="/assets/jquery.js")
+    script(src="/assets/popper.js")
+    script(src="/assets/bootstrap.js")

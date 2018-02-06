@@ -26,4 +26,3 @@ libraryDependencies ++= {
   )
 }
 
-enablePlugins(DockerPlugin)
