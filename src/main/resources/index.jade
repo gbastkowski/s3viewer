@@ -4,17 +4,17 @@ html(lang="en")
     meta(charset="utf-8")
     meta(name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no")
 
-    title= "Test"
+    title= name
     link(rel="stylesheet" href="/assets/bootstrap.css")
   body
     .container-fluid
       nav(aria-label="breadcrumb")
         ol.breadcrumb
           li.breadcrumb-item.font-weight-bold
-            a(href="/") N4OS Storage
-          - for (breadcrumb <- breadcrumbs)
+            a(href="/")= name
+          - for (e <- breadcrumbs)
             li.breadcrumb-item
-              a(href={breadcrumb.path})= {breadcrumb.name}
+              a(href={e.path})= {e.name}
 
       table.table
         thead
@@ -28,12 +28,12 @@ html(lang="en")
               - e match
                 - case DisplayDirectory(name, path) =>
                   td
-                    a(href=path)= name
+                    a(href= path)= name
                   td
                   td
                 - case DisplayFile(name, size, lastModified, path) =>
                   td
-                    a(href=path)= name
+                    a(href= path)= name
                   td= size
                   td= lastModified
 
