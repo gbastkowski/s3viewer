@@ -4,8 +4,6 @@ version := "0.1"
 
 scalaVersion := "2.12.4"
 
-mainClass := Some("S3Viewer")
-
 libraryDependencies ++= {
   val akkaV       = "2.5.3"
   val akkaHttpV   = "10.0.9"
@@ -26,3 +24,17 @@ libraryDependencies ++= {
   )
 }
 
+enablePlugins(DockerPlugin)
+mainClass in assembly := Some("net.bastkowski.s3viewer.S3Viewer")
+
+dockerfile in docker := {
+  // The assembly task generates a fat JAR file
+  val artifact: File = assembly.value
+  val artifactTargetPath = s"/app/${artifact.name}"
+
+  new Dockerfile {
+    from("openjdk:8-jre")
+    add(artifact, artifactTargetPath)
+    entryPoint("java", "-jar", artifactTargetPath)
+  }
+}
