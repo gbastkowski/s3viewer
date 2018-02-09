@@ -14,28 +14,30 @@ html(lang="en")
             a(href="/")= name
           - for (e <- breadcrumbs)
             li.breadcrumb-item
-              a(href={e.path})= {e.name}
-
-      table.table
-        thead
-          tr
-            th(scope="col") Name
-            th(scope="col") Size
-            th(scope="col") Last Modified
-        tbody
-          - for (e <- entries)
+              a(href= {e.href})= {e.text}
+      - if (entries.isEmpty)
+        .jumbotron This folder is empty
+      - else
+        table.table
+          thead
             tr
-              - e match
-                - case DisplayDirectory(name, path) =>
-                  td
-                    a(href= path)= name
-                  td
-                  td
-                - case DisplayFile(name, size, lastModified, path) =>
-                  td
-                    a(href= path)= name
-                  td= size
-                  td= lastModified
+              th(scope="col") Name
+              th(scope="col") Size
+              th(scope="col") Last Modified
+          tbody
+            - for (e <- entries)
+              tr
+                - e match
+                  - case d@Directory(_, name) =>
+                    td
+                      a(href= {d.href})= name
+                    td
+                    td
+                  - case f@File(path, name, size, lastModified) =>
+                    td
+                      a(href= {f.href})= name
+                    td= size
+                    td= lastModified
 
     script(src="/assets/jquery.js")
     script(src="/assets/popper.js")

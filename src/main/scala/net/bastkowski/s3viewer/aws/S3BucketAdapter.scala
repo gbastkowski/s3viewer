@@ -8,5 +8,5 @@ import akka.http.scaladsl.model.Uri
 trait S3BucketAdapter {
   def name: String
   def get(path: Uri.Path): Option[StreamableObject]
-  def ls(path: Uri.Path): Stream[DisplayEntry]
+  def ls(path: Uri.Path): List[DisplayEntry]
 }

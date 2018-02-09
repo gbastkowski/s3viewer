@@ -15,7 +15,6 @@ import scala.concurrent.ExecutionContextExecutor
 trait Service {
   import ContentTypes.{`application/octet-stream`, `text/html(UTF-8)`}
   import StatusCodes._
-  import PathMatchers.Slash
 
   implicit val system: ActorSystem
   implicit val executor: ExecutionContextExecutor
@@ -26,23 +25,16 @@ trait Service {
 
   val logger: LoggingAdapter
 
-  val routes: Route = {
-    get {
-      pathPrefix("assets" / RemainingPath) { path =>
-        complete {
-          Assets(path)
-        }
-      } ~
-      // TODO add some prefix
-      pathSuffix(Slash ~ RemainingPath) { path =>
-       complete {
-         listDirectory(path)
-       }
-      } ~
-      path(RemainingPath) { path =>
-        complete {
-          downloadFile(path)
-        }
+  val routes: Route = get {
+    pathPrefix("assets" / RemainingPath) { path =>
+      complete {
+        Assets(path)
+      }
+    } ~
+    path(RemainingPath)  {path =>
+      complete {
+        if (path.isEmpty || path.endsWithSlash) listDirectory(path)
+        else                                    downloadFile(path)
       }
     }
   }
@@ -52,7 +44,9 @@ trait Service {
     case None      => NotFound
   }
 
-  private[this] def listDirectory(path: Uri.Path): ToResponseMarshallable = HttpEntity(
+  private[this] def listDirectory(path: Uri.Path): ToResponseMarshallable = {
+    println(path)
+    HttpEntity(
     `text/html(UTF-8)`,
-    htmlBuilder.build(bucket.name, DisplayEntry(path.toString), bucket.ls(path).toList))
+    htmlBuilder.build(bucket.name, DisplayEntry(path.toString + "/"), bucket.ls(path).toList))}
 }

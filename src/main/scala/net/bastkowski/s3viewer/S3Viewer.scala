@@ -30,26 +30,46 @@ object S3Viewer extends App {
   new ServiceImpl(
     config.getString("http.interface"),
     config.getInt("http.port"),
-    new S3Storage(config.getString("aws.bucket"), config.getString("aws.region")))
+    new S3Storage(args.toList match {
+      case bucket :: Nil => bucket
+      case _ => config.getString("aws.bucket")
+    },
+    config.getString("aws.region")))
 }
 
-object MockViewer  {
+object MockViewer {
   val config = ConfigFactory.load()
   new ServiceImpl(
     config.getString("http.interface"),
     config.getInt("http.port"),
-    new S3BucketAdapter {
-      def name = "Mock"
-      def ls(path: Uri.Path): Stream[DisplayEntry] = path.toString match {
-        case "/" | "" => Seq(
-          DisplayDirectory("directory/", "/directory/"),
-          DisplayFile("a", 1l, LocalDateTime.now, "/a")).toStream
-        case "/directory" => Seq(
-          DisplayDirectory("b/", "/b/"),
-          DisplayFile("asdf.tgz", 2l, LocalDateTime.now, "/asdf.tgz")).toStream
-        case _ => Nil.toStream
-      }
+    MockBucket)
 
-      def get(path: Uri.Path): Option[StreamableObject] = ???
-    })
+  private object MockBucket extends S3BucketAdapter {
+    def name = "Mock"
+
+    def ls(path: Uri.Path): List[DisplayEntry] = path.toString match {
+      case "/" | ""     => root
+      case "/directory" => directory
+      case _            => entries()
+    }
+
+    private[this] def directory = {
+      entries(
+        DisplayEntry.apply2("/b/"),
+        File(Root, "asdf.tgz", 2l, LocalDateTime.now))
+    }
+
+    private[this] def root = {
+      entries(
+        DisplayEntry.apply2("/directory/"),
+        File(Root, "a", 1l, LocalDateTime.now))
+    }
+
+    private[this] def entries(e: DisplayEntry*) ={
+      e.toList
+    }
+
+    def get(path: Uri.Path): Option[StreamableObject] = ???
+  }
+
 }

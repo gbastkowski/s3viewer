@@ -3,6 +3,7 @@ package net.bastkowski.s3viewer.aws
 import java.time.{LocalDateTime, ZoneId}
 import java.util.Date
 
+import akka.http.javadsl.model.headers.LastModified
 import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.StreamConverters.{fromInputStream => toSource}
@@ -21,14 +22,18 @@ case class StreamableObject(contentLength: Long,
                             source: Source[ByteString, Future[IOResult]])
 
 object DisplayEntry {
-  def apply(key: String) = DisplayDirectory(simpleName(key), "/" + key)
+  def apply2(path: String): Path = apply2(segments(path).reverse)
+  def apply2(segments: List[String]): Path = segments match {
+    case head :: tail => Directory(apply2(tail), head)
+    case Nil          => Root
+  }
 
-  def apply(s3ObjectSummary: S3ObjectSummary) =
-    DisplayFile(
-      simpleName(s3ObjectSummary.getKey),
-      s3ObjectSummary.getSize,
-      toLocalDateTime(s3ObjectSummary.getLastModified),
-      "/" + s3ObjectSummary.getKey)
+  def apply(key: String) = apply2(key)
+
+  def apply(s3ObjectSummary: S3ObjectSummary) = segments(s3ObjectSummary.getKey).reverse match {
+    case head :: tail => File(apply2(tail), head,s3ObjectSummary.getSize,
+      toLocalDateTime(s3ObjectSummary.getLastModified))
+  }
 
   def simpleName(path: String): String = segments(path).lastOption.getOrElse("/")
 
@@ -38,26 +43,30 @@ object DisplayEntry {
     LocalDateTime.ofInstant(date.toInstant, ZoneId.systemDefault)
 }
 
-sealed trait Path {
+sealed trait DisplayEntry {
+  def href: String
+  def text: String
+}
+
+sealed trait Path extends DisplayEntry {
   val parent: Path
   val name: String
+  def text: String = name
+  def href: String = segments.reverse.fold("")(_ + _)
+
+  private def segments: List[String] = this match {
+    case Root => "/" :: Nil
+    case path => (path.name + "/") :: parent.segments
+  }
 }
-case class Directory(parent: Directory, name: String)
-case class File(parent: Directory, name: String)
+
+case class Directory(parent: Path, name: String) extends Path
+case class File(path: Path, name: String, size: Long, lastModified: LocalDateTime) extends DisplayEntry {
+  def text: String = name
+  def href: String = path.href + name
+}
+
 case object Root extends Path {
-  val parent = this
+  val parent: Path = this
   val name = ""
 }
-
-sealed trait DisplayEntry {
-  val name, path: String
-  def segments = DisplayEntry.segments(path)
-}
-
-case class DisplayFile(name: String,
-                        size: Long,
-                        lastModified: LocalDateTime,
-                        path: String
-                      ) extends DisplayEntry
-
-case class DisplayDirectory(name: String, path: String) extends DisplayEntry
