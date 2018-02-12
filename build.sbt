@@ -1,8 +1,6 @@
-name := "s3viewer"
-
-version := "0.1"
-
-scalaVersion := "2.12.4"
+name             := "s3viewer"
+version          := "0.1"
+scalaVersion     := "2.12.4"
 
 libraryDependencies ++= {
   val akkaV       = "2.5.9"
@@ -13,10 +11,10 @@ libraryDependencies ++= {
     "com.github.seratch"       %% "awscala"              % "0.6.2",
     "com.typesafe.akka"        %% "akka-actor"           % akkaV,
     "com.typesafe.akka"        %% "akka-stream"          % akkaV,
-    "com.typesafe.akka"        %% "akka-testkit"         % akkaV,
+    "com.typesafe.akka"        %% "akka-testkit"         % akkaV      % Test,
     "com.typesafe.akka"        %% "akka-http"            % akkaHttpV,
     "com.typesafe.akka"        %% "akka-http-spray-json" % akkaHttpV,
-    "com.typesafe.akka"        %% "akka-http-testkit"    % akkaHttpV,
+    "com.typesafe.akka"        %% "akka-http-testkit"    % akkaHttpV  % Test,
     "org.apache.logging.log4j"  % "log4j-api"            % log4jV,
     "org.apache.logging.log4j"  % "log4j-core"           % log4jV,
     "org.apache.logging.log4j"  % "log4j-slf4j-impl"     % log4jV,
@@ -32,21 +30,27 @@ enablePlugins(DockerPlugin)
 mainClass in assembly := Some("net.bastkowski.s3viewer.S3Viewer")
 
 dockerfile in docker := {
-  // The assembly task generates a fat JAR file
-  val artifact: File = assembly.value
+  val artifact: File     = assembly.value
   val artifactTargetPath = s"/app/${artifact.name}"
 
   new Dockerfile {
-    from("openjdk:8-jre")
+    from("openjdk:8-jre-alpine")
+    label("maintainer"  -> "Gunnar Bastkowski <gunnar@bastkowski.net>",
+          "version"     -> version.value)
+
     add(artifact, artifactTargetPath)
-    entryPoint("java"                   ,
-      "-XX:+UnlockExperimentalVMOptions",
-      "-XX:+UseCGroupMemoryLimitForHeap",
-      "-XX:MaxRAMFraction=1"            ,
-      "-XshowSettings:vm"               ,
-      "-Dlog4j2.debug=true"             ,
-      "-jar"                            ,
-      artifactTargetPath)
-    cmd("n4-cd-n4os-storage")
+    env("JAVA_OPTS"     -> str("-XX:+UnlockExperimentalVMOptions",
+                                "-XX:+UseCGroupMemoryLimitForHeap",
+                                "-XX:MaxRAMFraction=1"            ,
+                                "-XshowSettings:vm")              ,
+        "VIEWER_OPTS"   -> str("-Dlog4j2.debug=true"))
+
+    entryPoint("sh", "-c", str("java",
+                                "$JAVA_OPTS",
+                                "$VIEWER_OPTS",
+                                "-jar",
+                                artifactTargetPath))
+
+    private def str(s: String*) = s.toSeq.mkString(" ")
   }
 }

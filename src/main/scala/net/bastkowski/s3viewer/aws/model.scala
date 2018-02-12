@@ -3,7 +3,6 @@ package net.bastkowski.s3viewer.aws
 import java.time.{LocalDateTime, ZoneId}
 import java.util.Date
 
-import akka.http.javadsl.model.headers.LastModified
 import akka.stream.IOResult
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.StreamConverters.{fromInputStream => toSource}

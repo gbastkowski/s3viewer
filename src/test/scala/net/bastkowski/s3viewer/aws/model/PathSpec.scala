@@ -1,25 +1,19 @@
 package net.bastkowski.s3viewer.aws.model
 
 import net.bastkowski.s3viewer.aws.{Directory, DisplayEntry, Root}
-import org.scalatest.FreeSpec
+import org.scalatest.{FreeSpec, Matchers}
 
-class PathSpec extends FreeSpec {
+class PathSpec extends FreeSpec with Matchers {
 
   "A path " - {
-    "with no segments" - {
-      "should be a root" in {
-        assert(DisplayEntry.apply2(Nil) == Root)
-      }
+    "with no segments" in {
+      DisplayEntry.apply2(Nil) shouldBe Root
     }
     "with one segment" - {
-      "should have a parent" in {
-        assert(DisplayEntry.apply2("a" :: Nil) == Directory(Root, "a"))
-      }
+      DisplayEntry.apply2("a" :: Nil) shouldBe Directory(Root, "a")
     }
     "with an empty string" - {
-      "should be root" in {
-        assert(DisplayEntry.apply2("") == Root)
-      }
+      DisplayEntry.apply2("") shouldBe Root
     }
     "with only a single slash" - {
       "should be root" in {
