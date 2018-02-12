@@ -19,8 +19,8 @@ class WebServer(interface: String, port: Int, override val bucket: S3BucketAdapt
    implicit val executor: ExecutionContextExecutor = system.dispatcher
    implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  override val htmlBuilder = new HtmlBuilder()
   override def assets: Assets = Assets
+  override val htmlBuilder = new HtmlBuilderImpl()
 
   Http().bindAndHandle(routes, interface, port)
 }

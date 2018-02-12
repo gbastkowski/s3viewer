@@ -9,6 +9,7 @@ libraryDependencies ++= {
   val scalaTestV  = "3.0.5"
   Seq(
     "com.github.seratch"       %% "awscala"              % "0.6.2",
+    "com.lihaoyi"              %% "scalatags"            % "0.6.7",
     "com.typesafe.akka"        %% "akka-actor"           % akkaV,
     "com.typesafe.akka"        %% "akka-stream"          % akkaV,
     "com.typesafe.akka"        %% "akka-testkit"         % akkaV      % Test,
@@ -18,7 +19,6 @@ libraryDependencies ++= {
     "org.apache.logging.log4j"  % "log4j-api"            % log4jV,
     "org.apache.logging.log4j"  % "log4j-core"           % log4jV,
     "org.apache.logging.log4j"  % "log4j-slf4j-impl"     % log4jV,
-    "org.scalatra.scalate"     %% "scalate-core"         % "1.8.0",
     "org.webjars"               % "bootstrap"            % "4.0.0"    % Runtime,
     "org.webjars"               % "jquery"               % "3.3.1"    % Runtime,
     "org.webjars.npm"           % "popper.js"            % "1.13.0"   % Runtime,
