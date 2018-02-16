@@ -1,5 +1,9 @@
 package net.bastkowski.s3viewer.html
 
+import java.text._
+import java.time.LocalDateTime
+import java.time.format.{DateTimeFormatter, FormatStyle}
+
 import net.bastkowski.s3viewer.aws._
 
 class HtmlBuilderImpl extends HtmlBuilder {
@@ -27,32 +31,38 @@ class HtmlBuilderImpl extends HtmlBuilder {
 
   private def breadcrumbs(name: String, path: Path) =
     ol(`class` := "breadcrumb",
-      li(`class` := "breadcrumb-item font-weight-bold", a(href := "/", name)),
-      for (b <- toBreadcrumbs(path)) yield
-        li(`class` := "breadcrumb-item", a(href := b.href, b.text)))
+      li(`class` := "breadcrumb-item font-weight-bold", a(href := "/ui/", name)),
+      for (b <- toBreadcrumbs(path).dropRight(1)) yield
+        li(`class` := "breadcrumb-item", a(href := s"/ui${b.href}", b.text)),
+      toBreadcrumbs(path).lastOption.map { x =>
+        li(`class` := "breadcrumb-item active", attr("aria-current") := "page", x.text)
+      }
+    )
 
   private def entryList(entries: List[DisplayEntry]) =
-    table(`class` := "table",
+    table(`class` := "table table-hover",
       thead(
         tr(
           tableHeader("Name"),
           tableHeader("Size"),
           tableHeader("Last Modified"))),
       tbody(entries.map {
-        case d@Directory(_, n) =>
-          tr(
-            td(a(href := d.href, n)),
-            td(),
-            td())
+        case d@Directory(_, n) => tr(
+          td(width := "50%", a(href := s"/ui${d.href}", n)),
+          td,
+          td)
         case f@File(_, n, s, lastModified) =>
           tr(
-            td(a(href := f.href, n)),
-            td(s),
-            td(lastModified.toString)) }))
+            td(width := "50%", a(href := f.href, n)),
+            td(width := "25%", format(s)),
+            td(width := "25%", format(lastModified))) }))
 
   private[this] def tableHeader(s: String) = th(attr("scope") := "col", s)
 
   private[this] def emptyDiv = div(`class` := "jumbotron", "This folder is empty")
+
+  private[this] def format(number: Long) = NumberFormat.getInstance().format(number)
+  private[this] def format(date: LocalDateTime) = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(date)
 
   private[this] def toBreadcrumbs(dir: Path): List[Path] = dir match {
     case Root => Nil

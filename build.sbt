@@ -19,6 +19,7 @@ libraryDependencies ++= {
     "org.apache.logging.log4j"  % "log4j-api"            % log4jV,
     "org.apache.logging.log4j"  % "log4j-core"           % log4jV,
     "org.apache.logging.log4j"  % "log4j-slf4j-impl"     % log4jV,
+    "org.apache.logging.log4j" %% "log4j-api-scala"      % "11.0",
     "org.webjars"               % "bootstrap"            % "4.0.0"    % Runtime,
     "org.webjars"               % "jquery"               % "3.3.1"    % Runtime,
     "org.webjars.npm"           % "popper.js"            % "1.13.0"   % Runtime,

@@ -3,10 +3,13 @@ package net.bastkowski.s3viewer
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCodes, Uri}
+import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.scaladsl.StreamConverters
+import akka.util.ByteString
 import net.bastkowski.s3viewer.aws.{DisplayEntry, Path, S3BucketAdapter, StreamableObject}
 import net.bastkowski.s3viewer.html.{Assets, HtmlBuilder}
 import org.scalatest.{FreeSpec, Matchers}
@@ -16,29 +19,29 @@ import scala.concurrent.ExecutionContextExecutor
 class ServiceSpec extends FreeSpec with Matchers with ScalatestRouteTest with Service {
     override implicit val executor: ExecutionContextExecutor = system.dispatcher
 
-    private[this] def testCases(p: String) = p match {
-      case "" | "/" => "root"
-      case "a"      => "/listing/"
-      case "b"      => "b"
-      case x        => s"Path $x is not a valid test case"
-    }
-
-    override val bucket = new S3BucketAdapter {
-      override def ls(path: Uri.Path) = Nil
-      override def get(path: Uri.Path) = path match {
-        case Uri.Path("b")  => Some(StreamableObject(8l, testSource))
-        case _              => None
+    override def backend: Backend = new Backend {
+      override def getAsset(path: Uri.Path): ToResponseMarshallable = path match {
+        case Path("bootstrap.css") => OK
+        case Path("Idontexist.css") => NotFound
+        case x => HttpResponse(
+          status = StatusCodes.NotImplemented,
+          entity = HttpEntity(s"$x not expected"))
       }
 
-      private val testSource =
-        StreamConverters.fromInputStream(() => new ByteArrayInputStream("download".getBytes(StandardCharsets.UTF_8)))
+      override def downloadFile(path: Uri.Path): Option[ToResponseMarshallable] = path match {
+        case Path("b") => Some("download")
+        case Path("non-existing") => None
+        case x => Some(s"$x not expected")
+      }
 
-      override val name = "Test"
+      override def listDirectory(path: Uri.Path): ToResponseMarshallable = path match {
+        case Path("") => "index"
+        case Path("a/") => "/listing/"
+        case x => s"$x not expected"
+      }
+
+      override def isDirectory(path: Uri.Path): Boolean = path.endsWithSlash || path.isEmpty
     }
-
-    override def assets: Assets = Assets
-
-    override def htmlBuilder: HtmlBuilder = (_: String, path: Path, _: List[DisplayEntry]) => testCases(path.name)
 
   "A path prefixed with /assets" - {
     "with an existing asset" in {
@@ -56,12 +59,12 @@ class ServiceSpec extends FreeSpec with Matchers with ScalatestRouteTest with Se
   "An empty path" - {
     "without leading slash" in {
       Get() ~> routes ~> check {
-        responseAs[String] shouldEqual "root"
+        responseAs[String] shouldEqual "index"
       }
     }
     "with a leading slash" in {
       Get("/") ~> routes ~> check {
-        responseAs[String] shouldEqual "root"
+        responseAs[String] shouldEqual "index"
       }
     }
   }

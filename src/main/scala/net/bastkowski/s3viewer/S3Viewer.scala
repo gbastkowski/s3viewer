@@ -1,38 +1,40 @@
 package net.bastkowski.s3viewer
 
-import java.time.LocalDateTime
-import java.util.Date
-
 import akka.actor.ActorSystem
-import akka.event.Logging
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.Uri
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import net.bastkowski.s3viewer.aws._
 import net.bastkowski.s3viewer.html._
+import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.ExecutionContextExecutor
 
-class WebServer(interface: String, port: Int, override val bucket: S3BucketAdapter) extends Service {
+class WebServer(interface: String, port: Int, override val backend: Backend) extends Service with Logging {
    implicit val system: ActorSystem = ActorSystem()
    implicit val executor: ExecutionContextExecutor = system.dispatcher
    implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  override def assets: Assets = Assets
-  override val htmlBuilder = new HtmlBuilderImpl()
-
-  Http().bindAndHandle(routes, interface, port)
+  for (binding <- Http().bindAndHandle(routes, interface, port)) {
+    logger.info(s"Webserver listening on ${binding.localAddress}")
+  }
 }
 
-object S3Viewer extends App {
-  import ConfigFactory.{systemEnvironment => env}
-  val config = ConfigFactory.load()
+case class Config(bucket: String, region: String, interface: String, port: Int)
 
-  new WebServer(
-    config.getString("http.interface"),
-    config.getInt("http.port"),
-    new S3Storage(env.getString("BUCKET"), env.getString("REGION")))
+object S3Viewer extends App {
+  val config = {
+    import ConfigFactory.{systemEnvironment => env}
+    Config(env.getString("BUCKET"), env.getString("REGION"), env.getString("HTTP_INTERFACE"), env.getInt("HTTP_PORT")
+  )}
+
+  lazy val storage = new S3Storage(config.bucket, config.region)
+  lazy val view    = new HtmlBuilderImpl()
+  lazy val backend = new BackendImpl(storage, Assets, view)
+
+  new WebServer(config.interface, config.port, backend)
 }
 
 object MockViewer {
@@ -40,34 +42,19 @@ object MockViewer {
   new WebServer(
     config.getString("http.interface"),
     config.getInt("http.port"),
-    MockBucket)
+    MockBackend)
 
-  private object MockBucket extends S3BucketAdapter {
-    def name = "Mock"
-
-    def ls(path: Uri.Path): List[DisplayEntry] = path.toString match {
-      case "/" | ""     => root
-      case "/directory" => directory
-      case _            => entries()
-    }
-
-    private[this] def directory = {
-      entries(
-        DisplayEntry.apply2("/b/"),
-        File(Root, "asdf.tgz", 2l, LocalDateTime.now))
-    }
-
-    private[this] def root = {
-      entries(
-        DisplayEntry.apply2("/directory/"),
-        File(Root, "a", 1l, LocalDateTime.now))
-    }
-
-    private[this] def entries(e: DisplayEntry*) ={
-      e.toList
-    }
+  private object MockBackend extends Backend {
 
     def get(path: Uri.Path): Option[StreamableObject] = ???
+
+    override def isDirectory(path: Uri.Path): Boolean = ???
+
+    override def getAsset(path: Uri.Path): ToResponseMarshallable = ???
+
+    override def downloadFile(path: Uri.Path): Option[ToResponseMarshallable] = ???
+
+    override def listDirectory(path: Uri.Path): ToResponseMarshallable = ???
   }
 
 }
